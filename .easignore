@@ -1,0 +1,4 @@
+// filepath: /home/daniel/Desktop/A/spotify-client/.easignore
+mosquitto-mqtt/
+*.db
+```
