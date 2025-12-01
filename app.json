@@ -24,8 +24,12 @@
         "WRITE_EXTERNAL_STORAGE",
         "MEDIA_LIBRARY",
         "MANAGE_EXTERNAL_STORAGE",
-        "RECORD_AUDIO"
-        
+        "RECORD_AUDIO",
+        "BLUETOOTH",
+        "BLUETOOTH_ADMIN",
+        "BLUETOOTH_CONNECT",
+        "BLUETOOTH_SCAN",
+        "ACCESS_FINE_LOCATION"
       ],
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,

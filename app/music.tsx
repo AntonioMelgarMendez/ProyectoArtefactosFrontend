@@ -1,25 +1,43 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
-import { View, Text, ActivityIndicator, Modal } from "react-native";
 import * as MusicLibrary from "expo-music-library";
-import { useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
-import FolderList from "../components/music/FolderList";
-import TrackList from "../components/music/TrackList";
-import MiniPlayer from "../components/music/MiniPlayer";
-import FullPlayerModal from "../components/music/FullPlayerModal";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { ActivityIndicator, Modal, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import FolderList from "../components/music/FolderList";
+import FullPlayerModal from "../components/music/FullPlayerModal";
+import MiniPlayer from "../components/music/MiniPlayer";
+import TrackList from "../components/music/TrackList";
 import { useMusicContext } from "../context/MusicContext";
 
 export default function Music() {
-  const { tracks, setTracks, loaded, setLoaded } = useMusicContext();
+  const {
+    tracks,
+    setTracks,
+    loaded,
+    setLoaded,
+    selectedTrack,
+    setSelectedTrack,
+    status,
+    playTrack,
+    pauseTrack,
+    resumeTrack,
+    nextTrack,
+    prevTrack,
+    seekToPosition, 
+  } = useMusicContext();
+
   const [loading, setLoading] = useState(!loaded);
-  const [selectedTrack, setSelectedTrack] = useState<any>(null);
+
   const [modalVisible, setModalVisible] = useState(false);
   const [showMiniPlayer, setShowMiniPlayer] = useState(false);
-  const [audioSource, setAudioSource] = useState<string | null>(null);
   const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
-  const player = useAudioPlayer(audioSource);
-  const status = useAudioPlayerStatus(player);
+
   const insets = useSafeAreaInsets();
+
+  useEffect(() => {
+    if (selectedTrack) {
+      setShowMiniPlayer(true);
+    }
+  }, [selectedTrack]);
 
   useEffect(() => {
     if (!loaded) {
@@ -56,7 +74,7 @@ export default function Music() {
 
   const folders = useMemo(() => {
     const set = new Set<string>();
-    tracks.forEach((track) => {
+    tracks.forEach((track: any) => {
       set.add(getFolderFromUri(track.uri || track.filename || ""));
     });
     return Array.from(set).sort();
@@ -65,71 +83,22 @@ export default function Music() {
   const tracksInFolder = useMemo(() => {
     if (!selectedFolder) return [];
     return tracks.filter(
-      (track) => getFolderFromUri(track.uri || track.filename || "") === selectedFolder
+      (track: any) =>
+        getFolderFromUri(track.uri || track.filename || "") === selectedFolder
     );
   }, [tracks, selectedFolder, getFolderFromUri]);
 
-  useEffect(() => {
-    if (audioSource) {
-      player.replace({ uri: audioSource });
-      player.play();
-    }
-  }, [audioSource, player]);
+  const handlePlayTrack = (uri: string, track: any) => {
+    playTrack(uri, track);
+    setModalVisible(false); 
+  };
 
-  const playTrack = useCallback((uri: string, track: any) => {
-    setAudioSource(uri);
-    setSelectedTrack(track);
-    setShowMiniPlayer(true);
-    setModalVisible(false);
-  }, []);
-
-  const pauseTrack = useCallback(() => {
-    player.pause();
-  }, [player]);
-
-  const resumeTrack = useCallback(() => {
-    player.play();
-  }, [player]);
-
-  const stopTrack = useCallback(() => {
-    player.pause();
-    player.seekTo(0);
+  const handleStopTrack = () => {
+    pauseTrack();
     setSelectedTrack(null);
     setShowMiniPlayer(false);
     setModalVisible(false);
-  }, [player]);
-
-  const nextTrack = useCallback(() => {
-    if (!selectedTrack) return;
-    const idx = tracksInFolder.findIndex((t) => t.id === selectedTrack.id);
-    if (idx < tracksInFolder.length - 1) {
-      const next = tracksInFolder[idx + 1];
-      setAudioSource(next.uri);
-      setSelectedTrack(next);
-      setShowMiniPlayer(true);
-    }
-  }, [selectedTrack, tracksInFolder]);
-
-  const prevTrack = useCallback(() => {
-    if (!selectedTrack) return;
-    const idx = tracksInFolder.findIndex((t) => t.id === selectedTrack.id);
-    if (idx > 0) {
-      const prev = tracksInFolder[idx - 1];
-      setAudioSource(prev.uri);
-      setSelectedTrack(prev);
-      setShowMiniPlayer(true);
-    }
-  }, [selectedTrack, tracksInFolder]);
-
-  const seekToPosition = useCallback(
-    (percent: number) => {
-      if (status.duration > 0) {
-        const seconds = percent * status.duration;
-        player.seekTo(seconds);
-      }
-    },
-    [player, status.duration]
-  );
+  };
 
   const formatTime = useCallback((seconds: number) => {
     if (!seconds || isNaN(seconds)) return "0:00";
@@ -139,11 +108,17 @@ export default function Music() {
   }, []);
 
   return (
-    <View style={{ flex: 1, backgroundColor: "#fff", marginBottom: insets.bottom }}>
+    <View
+      style={{ flex: 1, backgroundColor: "#fff", marginBottom: insets.bottom }}
+    >
       {loading ? (
-        <View style={{ alignItems: "center", marginBottom: 20 }}>
+        <View
+          style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
+        >
           <ActivityIndicator size="large" color="#1DB954" />
-          <Text>Cargando música...</Text>
+          <Text style={{ marginTop: 10, color: "#1DB954" }}>
+            Cargando música...
+          </Text>
         </View>
       ) : selectedFolder === null ? (
         <FolderList
@@ -156,7 +131,7 @@ export default function Music() {
         <TrackList
           tracks={tracksInFolder}
           selectedTrack={selectedTrack}
-          playTrack={playTrack}
+          playTrack={handlePlayTrack} // Usamos el wrapper local
           formatTime={formatTime}
           onBack={() => setSelectedFolder(null)}
           folderName={selectedFolder}
@@ -168,7 +143,7 @@ export default function Music() {
           selectedTrack={selectedTrack}
           status={status}
           formatTime={formatTime}
-          seekToPosition={seekToPosition}
+          seekToPosition={seekToPosition} 
           pauseTrack={pauseTrack}
           resumeTrack={resumeTrack}
           nextTrack={nextTrack}
@@ -185,7 +160,7 @@ export default function Music() {
           resumeTrack={resumeTrack}
           nextTrack={nextTrack}
           prevTrack={prevTrack}
-          stopTrack={stopTrack}
+          stopTrack={handleStopTrack}
           seekToPosition={seekToPosition}
           setModalVisible={setModalVisible}
         />
